@@ -53,13 +53,17 @@ GPX *hiking = NULL;	// full hiking trace
 
 int main(int argc, char *argv[]){
 	bool force = false;
+	bool mmt = false;
 
 		/* Reading arguments */
 	int opt;
-	while(( opt = getopt(argc, argv, ":vdhFs:aAlpk:VXKG:S:qtTQ")) != -1) {
+	while(( opt = getopt(argc, argv, ":vdmhFs:aAlpk:VXKG:S:qtTQ")) != -1) {
 		switch(opt){
 		case 'F':
 			force = true;
+			break;
+		case 'm':	// expect mmt-style filenames
+			mmt = true;
 			break;
 		case 'd':	// debug implies verbose
 			debug = true;
@@ -176,6 +180,7 @@ int main(int argc, char *argv[]){
 				"-Q : enforce quality by removing samples where GoP is > 500\n"
 				"-F : don't fail if the target directory exists\n"
 				"-v : turn verbose on\n"
+				"-m : expect mmt-style filenames\n"
 				"-d : turn debugging messages on\n"
 			);
 			exit(EXIT_FAILURE);
@@ -240,7 +245,7 @@ int main(int argc, char *argv[]){
 	if(verbose)
 		printf("*I* images will be generated in '%s'\n", targetDir);
 
-	GPVideo video(argv[optind]);
+	GPVideo video(argv[optind], mmt);
 	video.Dump();
 
 	if(hiking && hiking->isStory())	// Specify the current video

@@ -341,34 +341,70 @@ double GPVideo::addSample( double sec, double lat, double lgt, double alt, doubl
 	return ret;
 }
 
-GPVideo::GPVideo( char *fch, unsigned int asample, double cumul_dst ) : nextsample(0), voffset(0), dop(0) {
-	this->sample = 1.0/asample;
+GPVideo::GPVideo(char *fch, bool mmt)
+    : GPVideo(fch, SAMPLE, 0.0, mmt)
+{
+}
 
+GPVideo::GPVideo( char *fch, unsigned int asample, double cumul_dst, bool mmt ) : nextsample(0), voffset(0), dop(0) {
+	this->sample = 1.0/asample;
+	
 	/* Ensure it's the 1st part of a GoPro video
-	 *
+	 * [update by eugenios] With -m we assume mmt managed filenames (GH0xxx-nn.MP4)
 	 * As GoPro's OpenMP4Source() needs a "char *",
 	 * it's easier to manage this temporary file in C
 	 * instead of a C++'s string
 	 *
 	 * https://community.gopro.com/s/article/GoPro-Camera-File-Naming-Convention
 	 */
+	
+	
 	char *fname = strdup(fch);
+	char *file_name;
 	assert(fname);		// quick & dirty : no raison to fail
 
+	
+	char *p = strrchr(fch, '/');
+	file_name = strdup(p ? p + 1 : fch);
+	
 		// "GX013561.MP4" -> 12 chars
-	size_t len = strlen(fname);
+	size_t len = strlen(file_name); // This corrects a mistake, as the file can be passed also with a full path
+	
+
 	if(len < 12){
 		fputs("*E* filename doesn't correspond to a GoPro video\n", stderr);
 		exit(EXIT_FAILURE);
 	}
-	if(strncmp(fname + len - 12, "GX01", 4) && strncmp(fname + len - 12, "GH01", 4)){
-		fputs("*E* not a GoPro video or not the 1st one\n", stderr);
-		exit(EXIT_FAILURE);
+
+	if (!mmt){
+		if(strncmp(file_name, "GX01", 4) && strncmp(file_name, "GH01", 4)){
+			fputs("*E* not a GoPro video or not the 1st one\n", stderr);
+			exit(EXIT_FAILURE);
+		}
+		len -= 10;	// point to the part number
 	}
-	len -= 10;	// point to the part number
+	else
+	{
+		/* it means we expect mmt formatted filenames (GH0707-01 , -02, 03...) */
+		/* Let's find where the '.' is and take the 2 characters before */
+		char *dot = strrchr(file_name, '.');
+		char *last2 = nullptr;
+		if (dot && dot - file_name >= 2) {
+    		last2 = dot - 2;
+			}
+			
 
+		char buff[3];
+		sprintf(buff, "%02d", 2);
+		len -= 6;
+				
+		memcpy(fname + len, buff, 2);
+		if(strncmp(file_name, "GH", 2) || strncmp(last2, "01", 2)) {
+			fputs("*E* not even a mmt-managed GoPro video or not the 1st one\n", stderr);
+			exit(EXIT_FAILURE);
+		}
 
-		/* Read the 1st chunck */
+	}
 	printf("*L* Reading '%s'\n", fch);
 
 	this->mp4handle = OpenMP4Source(fch, MOV_GPMF_TRAK_TYPE, MOV_GPMF_TRAK_SUBTYPE, 0);

@@ -73,11 +73,14 @@ public:
 		 * sample : number of samples per seconds
 		 * cumul_dst : initial cumulative distance
 		 */
-	GPVideo( char *fch, unsigned int sample=SAMPLE, double cumul_dst = 0.0);
-
+	GPVideo( char *fch, unsigned int sample=SAMPLE, double cumul_dst = 0.0, bool mmt = false);
+	/*Additional constructor to simplify calling code */
+	GPVideo( char *fch, bool mmt);
+	
 		/* Read and parse another part */
 	void AddPart( char *, double cumul_dst );
 
 	void Dump( void );
+	
 };
 #endif
